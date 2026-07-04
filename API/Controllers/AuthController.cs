@@ -1,0 +1,46 @@
+using Microsoft.AspNetCore.Mvc;
+using Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using API.Services;
+using API.DTOs;
+
+namespace API.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class AuthController : ControllerBase
+{
+    private readonly AppDbContext _context;
+    private readonly JwtTokenService _jwtService;
+
+    public AuthController(AppDbContext context, JwtTokenService jwtService)
+    {
+        _context = context;
+        _jwtService = jwtService;
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginDto dto)
+    {
+        var user = await _context.Users
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.Email == dto.Email && u.Password == dto.Password);
+
+        if (user == null)
+            return Unauthorized("Invalid credentials");
+
+        var token = _jwtService.CreateToken(user);
+
+        return Ok(new
+        {
+            token,
+            user = new
+            {
+                user.Id,
+                user.Name,
+                user.Email,
+                Role = user.Role.Name
+            }
+        });
+    }
+}
