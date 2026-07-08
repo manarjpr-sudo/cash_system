@@ -29,6 +29,8 @@ public class AppDbContext : DbContext
 
     public DbSet<AuditLog> AuditLogs { get; set; }
 
+    public ICollection<Approval> Approvals { get; set; } = new List<Approval>();
+
 
     /* Relationships */
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -41,8 +43,12 @@ public class AppDbContext : DbContext
             .HasForeignKey(u => u.RoleId);
         modelBuilder.Entity<Role>().HasData(
             new Role { Id = 1, Name = "Admin" },
-            new Role { Id = 2, Name = "Cashier"}
-        );
+            new Role { Id = 2, Name = "Cashier"});
+        modelBuilder.Entity<Approval>()
+            .HasOne(a => a.Order)
+            .WithMany(o => o.Approvals)
+            .HasForeignKey(a => a.OrderId)
+            .OnDelete(DeleteBehavior.Restrict);
 
     }
 

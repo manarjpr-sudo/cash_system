@@ -26,4 +26,6 @@ public class Order
     // العميل (اختياري)
     public int? CustomerId { get; set; }
     public Customer? Customer { get; set; }
+public ICollection<Approval> Approvals { get; set; } = new List<Approval>();
+
 }
