@@ -23,6 +23,8 @@ public class AppDbContext : DbContext
     /* Operational Data */
     public DbSet<Order> Orders { get; set; }
 
+    public DbSet<Customer> Customers { get; set; }
+
 
     /* Relationships */
     protected override void OnModelCreating(ModelBuilder modelBuilder)
