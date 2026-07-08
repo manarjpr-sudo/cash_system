@@ -25,6 +25,10 @@ public class AppDbContext : DbContext
 
     public DbSet<Customer> Customers { get; set; }
 
+    public DbSet<Transaction> Transactions { get; set; }
+
+    public DbSet<AuditLog> AuditLogs { get; set; }
+
 
     /* Relationships */
     protected override void OnModelCreating(ModelBuilder modelBuilder)
