@@ -10,7 +10,9 @@ public class AppDbContext : DbContext
     {
     }
 
+
     /* Master Data */
+
     public DbSet<User> Users { get; set; }
 
     public DbSet<Role> Roles { get; set; }
@@ -21,6 +23,7 @@ public class AppDbContext : DbContext
 
 
     /* Operational Data */
+
     public DbSet<Order> Orders { get; set; }
 
     public DbSet<Customer> Customers { get; set; }
@@ -32,10 +35,20 @@ public class AppDbContext : DbContext
     public DbSet<Approval> Approvals { get; set; }
 
 
-    /* Relationships */
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+
+        // Decimal precision for financial values
+        modelBuilder.Entity<Order>()
+            .Property(o => o.Amount)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Transaction>()
+            .Property(t => t.Amount)
+            .HasPrecision(18, 2);
+
 
 
         // User - Role relationship
@@ -45,11 +58,21 @@ public class AppDbContext : DbContext
             .HasForeignKey(u => u.RoleId);
 
 
-        // Seed Roles
+
+        // Seed default roles
         modelBuilder.Entity<Role>().HasData(
-            new Role { Id = 1, Name = "Admin" },
-            new Role { Id = 2, Name = "Cashier" }
+            new Role
+            {
+                Id = 1,
+                Name = "Admin"
+            },
+            new Role
+            {
+                Id = 2,
+                Name = "Cashier"
+            }
         );
+
 
 
         // Approval - Order relationship
@@ -60,7 +83,9 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
 
 
-        // Store Enums as strings
+
+        // Enum conversions
+
         modelBuilder.Entity<Order>()
             .Property(o => o.Type)
             .HasConversion<string>();
@@ -71,6 +96,10 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Transaction>()
             .Property(t => t.Type)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<Transaction>()
+            .Property(t => t.Status)
             .HasConversion<string>();
     }
 }

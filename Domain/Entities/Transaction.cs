@@ -1,4 +1,5 @@
 namespace Domain.Entities;
+
 using Domain.Enums;
 
 public class Transaction
@@ -7,6 +8,9 @@ public class Transaction
 
     // نوع الحركة: قبض / صرف
     public TransactionType Type { get; set; }
+
+    // حالة الحركة
+    public TransactionStatus Status { get; set; } = TransactionStatus.Completed;
 
     // المبلغ
     public decimal Amount { get; set; }
@@ -21,6 +25,11 @@ public class Transaction
     // العملية المرتبطة
     public int? OrderId { get; set; }
     public Order? Order { get; set; }
+
+
+    // العميل المرتبط
+    public int? CustomerId { get; set; }
+    public Customer? Customer { get; set; }
 
 
     // الموظف الذي سجل الحركة

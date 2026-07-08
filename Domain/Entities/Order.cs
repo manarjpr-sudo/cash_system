@@ -1,31 +1,49 @@
 namespace Domain.Entities;
+
 using Domain.Enums;
 
 public class Order
 {
     public int Id { get; set; }
 
+
     // نوع الطلب (صرف - قبض - سلفة ...)
     public OrderType Type { get; set; }
+
+
     // قيمة الطلب
     public decimal Amount { get; set; }
+
 
     // وصف مختصر
     public string? Description { get; set; }
 
+
     // حالة الطلب
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
+
     // تاريخ إنشاء الطلب
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+
 
     // مقدم الطلب
     public int UserId { get; set; }
     public User User { get; set; }
 
+
+
     // العميل (اختياري)
     public int? CustomerId { get; set; }
     public Customer? Customer { get; set; }
+
+
+
+    // الموافقات المرتبطة بالطلب
     public ICollection<Approval> Approvals { get; set; } = new List<Approval>();
 
+
+    // الحركات المالية الناتجة عن الطلب
+    public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
 }
