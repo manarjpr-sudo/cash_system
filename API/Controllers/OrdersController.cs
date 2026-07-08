@@ -5,6 +5,7 @@ using Domain.Entities;
 using API.DTOs;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using Domain.Enums;
 
 namespace API.Controllers;
 
@@ -30,7 +31,7 @@ public class OrdersController : ControllerBase
 
         var order = new Order
         {
-            Type = dto.Type,
+            Type = Enum.Parse<OrderType>(dto.Type),
             Amount = dto.Amount,
             Description = dto.Description,
             UserId = userId,

@@ -29,7 +29,7 @@ public class AppDbContext : DbContext
 
     public DbSet<AuditLog> AuditLogs { get; set; }
 
-    public ICollection<Approval> Approvals { get; set; } = new List<Approval>();
+    public DbSet<Approval> Approvals { get; set; }
 
 
     /* Relationships */
@@ -37,19 +37,40 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+
+        // User - Role relationship
         modelBuilder.Entity<User>()
             .HasOne(u => u.Role)
             .WithMany(r => r.Users)
             .HasForeignKey(u => u.RoleId);
+
+
+        // Seed Roles
         modelBuilder.Entity<Role>().HasData(
             new Role { Id = 1, Name = "Admin" },
-            new Role { Id = 2, Name = "Cashier"});
+            new Role { Id = 2, Name = "Cashier" }
+        );
+
+
+        // Approval - Order relationship
         modelBuilder.Entity<Approval>()
             .HasOne(a => a.Order)
             .WithMany(o => o.Approvals)
             .HasForeignKey(a => a.OrderId)
             .OnDelete(DeleteBehavior.Restrict);
 
-    }
 
+        // Store Enums as strings
+        modelBuilder.Entity<Order>()
+            .Property(o => o.Type)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<Order>()
+            .Property(o => o.Status)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<Transaction>()
+            .Property(t => t.Type)
+            .HasConversion<string>();
+    }
 }
