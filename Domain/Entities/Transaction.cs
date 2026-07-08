@@ -1,11 +1,12 @@
 namespace Domain.Entities;
+using Domain.Enums;
 
 public class Transaction
 {
     public int Id { get; set; }
 
     // نوع الحركة: قبض / صرف
-    public string Type { get; set; }
+    public TransactionType Type { get; set; }
 
     // المبلغ
     public decimal Amount { get; set; }

@@ -1,12 +1,12 @@
 namespace Domain.Entities;
+using Domain.Enums;
 
 public class Order
 {
     public int Id { get; set; }
 
     // نوع الطلب (صرف - قبض - سلفة ...)
-    public string Type { get; set; }
-
+    public OrderType Type { get; set; }
     // قيمة الطلب
     public decimal Amount { get; set; }
 
@@ -14,7 +14,7 @@ public class Order
     public string? Description { get; set; }
 
     // حالة الطلب
-    public string Status { get; set; } = "Pending";
+    public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
     // تاريخ إنشاء الطلب
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -26,6 +26,6 @@ public class Order
     // العميل (اختياري)
     public int? CustomerId { get; set; }
     public Customer? Customer { get; set; }
-public ICollection<Approval> Approvals { get; set; } = new List<Approval>();
+    public ICollection<Approval> Approvals { get; set; } = new List<Approval>();
 
 }
