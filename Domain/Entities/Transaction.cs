@@ -6,20 +6,34 @@ public class Transaction
 {
     public int Id { get; set; }
 
+
+    // رقم مرجعي للحركة
+    public string? ReferenceNumber { get; set; }
+
+
     // نوع الحركة: قبض / صرف
     public TransactionType Type { get; set; }
+
 
     // حالة الحركة
     public TransactionStatus Status { get; set; } = TransactionStatus.Completed;
 
+
     // المبلغ
     public decimal Amount { get; set; }
 
-    // الوصف
+
+    // وصف مختصر
     public string? Description { get; set; }
+
+
+    // ملاحظات إضافية
+    public string? Notes { get; set; }
+
 
     // تاريخ التنفيذ
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
 
 
     // العملية المرتبطة
@@ -27,9 +41,11 @@ public class Transaction
     public Order? Order { get; set; }
 
 
+
     // العميل المرتبط
     public int? CustomerId { get; set; }
     public Customer? Customer { get; set; }
+
 
 
     // الموظف الذي سجل الحركة
