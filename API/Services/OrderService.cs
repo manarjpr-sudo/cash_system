@@ -41,7 +41,7 @@ public class OrderService : IOrderService
         {
             OrderId = order.Id,
             UserId = userId,
-            Status = "Approved",
+            Status = ApprovalStatus.Approved,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -98,7 +98,7 @@ public class OrderService : IOrderService
         {
             OrderId = order.Id,
             UserId = userId,
-            Status = "Rejected",
+            Status = ApprovalStatus.Rejected,
             CreatedAt = DateTime.UtcNow
         };
 

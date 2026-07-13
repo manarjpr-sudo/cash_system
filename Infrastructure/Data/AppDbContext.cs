@@ -19,6 +19,8 @@ public class AppDbContext : DbContext
 
     public DbSet<Permission> Permissions { get; set; }
 
+    public DbSet<RolePermission> RolePermissions { get; set; }
+
     public DbSet<Setting> Settings { get; set; }
 
 
@@ -56,6 +58,24 @@ public class AppDbContext : DbContext
             .HasOne(u => u.Role)
             .WithMany(r => r.Users)
             .HasForeignKey(u => u.RoleId);
+
+
+
+        // Role - Permission relationship
+        modelBuilder.Entity<RolePermission>()
+            .HasKey(rp => new { rp.RoleId, rp.PermissionId });
+
+
+        modelBuilder.Entity<RolePermission>()
+            .HasOne(rp => rp.Role)
+            .WithMany(r => r.RolePermissions)
+            .HasForeignKey(rp => rp.RoleId);
+
+
+        modelBuilder.Entity<RolePermission>()
+            .HasOne(rp => rp.Permission)
+            .WithMany(p => p.RolePermissions)
+            .HasForeignKey(rp => rp.PermissionId);
 
 
 
@@ -100,6 +120,10 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Transaction>()
             .Property(t => t.Status)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<Approval>()
+            .Property(a => a.Status)
             .HasConversion<string>();
     }
 }

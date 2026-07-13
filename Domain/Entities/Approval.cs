@@ -1,11 +1,12 @@
 namespace Domain.Entities;
+using Domain.Enums;
 
 public class Approval
 {
     public int Id { get; set; }
 
     // حالة الموافقة: Approved / Rejected
-    public string Status { get; set; }
+    public ApprovalStatus Status { get; set; }
 
     // ملاحظات المدير
     public string? Comment { get; set; }
