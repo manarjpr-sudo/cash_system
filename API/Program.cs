@@ -40,6 +40,7 @@ builder.Services.AddSwaggerGen();
 // Dependency Injection
 // ===============================
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<JwtTokenService>();
 
 
