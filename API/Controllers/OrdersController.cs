@@ -8,6 +8,8 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using API.Services;
 
+namespace API.Controllers;
+
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -28,6 +30,7 @@ public class OrdersController : ControllerBase
             User.FindFirstValue(ClaimTypes.NameIdentifier)!
         );
 
+
         var order = new Order
         {
             Type = Enum.Parse<OrderType>(dto.Type),
@@ -37,26 +40,56 @@ public class OrdersController : ControllerBase
             CustomerId = dto.CustomerId
         };
 
+
         _context.Orders.Add(order);
 
         await _context.SaveChangesAsync();
 
-        return Ok(order);
+
+        return Ok(new
+        {
+            order.Id,
+            Type = order.Type.ToString(),
+            Status = order.Status.ToString(),
+            order.Amount,
+            order.Description,
+            order.CreatedAt,
+            order.UserId,
+            order.CustomerId
+        });
     }
+
 
 
     [HttpGet]
     public async Task<IActionResult> GetAllOrders()
     {
         var orders = await _context.Orders
-            .Include(o => o.Customer)
             .Include(o => o.User)
-            .Include(o => o.Approvals)
-            .Include(o => o.Transactions)
+            .Include(o => o.Customer)
             .ToListAsync();
 
-        return Ok(orders);
+
+        var result = orders.Select(o => new OrderResponseDto
+        {
+            Id = o.Id,
+            Type = o.Type.ToString(),
+            Status = o.Status.ToString(),
+            Amount = o.Amount,
+            Description = o.Description,
+            CreatedAt = o.CreatedAt,
+            UserId = o.UserId,
+            UserName = o.User.Name,
+            CustomerId = o.CustomerId,
+            CustomerName = o.Customer != null 
+                ? o.Customer.Name 
+                : null
+        });
+
+
+        return Ok(result);
     }
+
 
 
     [Authorize(Roles = "Admin")]
@@ -69,13 +102,17 @@ public class OrdersController : ControllerBase
             User.FindFirstValue(ClaimTypes.NameIdentifier)!
         );
 
+
         var result = await orderService.ApproveOrderAsync(id, userId);
+
 
         if (result == null)
             return BadRequest("Order cannot be approved");
 
+
         return Ok(result);
     }
+
 
 
     [Authorize(Roles = "Admin")]
@@ -88,10 +125,13 @@ public class OrdersController : ControllerBase
             User.FindFirstValue(ClaimTypes.NameIdentifier)!
         );
 
+
         var result = await orderService.RejectOrderAsync(id, userId);
+
 
         if (result == null)
             return BadRequest("Order cannot be rejected");
+
 
         return Ok(result);
     }
