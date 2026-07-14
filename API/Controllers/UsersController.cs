@@ -9,55 +9,79 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-
 [Authorize(Roles = "Admin")]
-
 public class UsersController : ControllerBase
 {
     private readonly AppDbContext _context;
+
 
     public UsersController(AppDbContext context)
     {
         _context = context;
     }
 
+
+
+    // GET: api/users
     [HttpGet]
-        public async Task<IActionResult> GetAllUsers()
-        {
-            var users = await _context.Users
-                .Include(u => u.Role)
-                .Select(u => new UserResponseDto
-                {
-                    Id = u.Id,
-                    Name = u.Name,
-                    Email = u.Email,
-                    Role = u.Role.Name
-                })
-                .ToListAsync();
-
-            return Ok(users);
-        }
-
-    [HttpPost]
-        public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
-        {
-            var user = new User
+    public async Task<IActionResult> GetAllUsers()
+    {
+        var users = await _context.Users
+            .Include(u => u.Role)
+            .Select(u => new UserResponseDto
             {
-                Name = dto.Name,
-                Email = dto.Email,
-                Password = dto.Password,
-                RoleId = dto.RoleId
-            };
+                Id = u.Id,
+                Name = u.Name,
+                Email = u.Email,
+                Role = u.Role.Name
+            })
+            .ToListAsync();
 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
 
-            return Ok(new {
-                user.Id,
-                user.Name,
-                user.Email,
-                Role = user.Role?.Name
-            });
-        }
+        return Ok(users);
+    }
 
+
+
+    // POST: api/users
+    [HttpPost]
+    public async Task<IActionResult> CreateUser(
+    [FromBody] CreateUserDto dto)
+    {
+        var existingUser = await _context.Users
+            .AnyAsync(u => u.Email == dto.Email);
+
+        if (existingUser)
+            return BadRequest("Email already exists");
+
+
+        var user = new User
+        {
+            Name = dto.Name,
+            Email = dto.Email,
+            Password = dto.Password,
+            RoleId = dto.RoleId
+        };
+
+        _context.Users.Add(user);
+
+        await _context.SaveChangesAsync();
+
+
+
+        var createdUser = await _context.Users
+            .Include(u => u.Role)
+            .Where(u => u.Id == user.Id)
+            .Select(u => new UserResponseDto
+            {
+                Id = u.Id,
+                Name = u.Name,
+                Email = u.Email,
+                Role = u.Role.Name
+            })
+            .FirstAsync();
+
+
+        return Ok(createdUser);
+    }
 }
