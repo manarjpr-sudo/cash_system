@@ -7,6 +7,7 @@ using Domain.Enums;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using API.Services;
+using API.Authorization;
 
 namespace API.Controllers;
 
@@ -24,7 +25,9 @@ public class OrdersController : ControllerBase
 
 
     [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDto dto)
+    [PermissionAuthorize("Create_Order")]
+    public async Task<IActionResult> CreateOrder(
+        [FromBody] CreateOrderDto dto)
     {
         var userId = int.Parse(
             User.FindFirstValue(ClaimTypes.NameIdentifier)!
@@ -62,6 +65,7 @@ public class OrdersController : ControllerBase
 
 
     [HttpGet]
+    [PermissionAuthorize("View_Orders")]
     public async Task<IActionResult> GetAllOrders()
     {
         var orders = await _context.Orders
@@ -92,8 +96,8 @@ public class OrdersController : ControllerBase
 
 
 
-    [Authorize(Roles = "Admin")]
     [HttpPost("{id}/approve")]
+    [PermissionAuthorize("Approve_Order")]
     public async Task<IActionResult> ApproveOrder(
         int id,
         [FromServices] IOrderService orderService)
@@ -115,8 +119,8 @@ public class OrdersController : ControllerBase
 
 
 
-    [Authorize(Roles = "Admin")]
     [HttpPost("{id}/reject")]
+    [PermissionAuthorize("Reject_Order")]
     public async Task<IActionResult> RejectOrder(
         int id,
         [FromServices] IOrderService orderService)
