@@ -34,9 +34,18 @@ public class OrdersController : ControllerBase
         );
 
 
+        if (!Enum.TryParse<OrderType>(
+            dto.Type,
+            true,
+            out var orderType))
+        {
+            return BadRequest("Invalid order type");
+        }
+
+
         var order = new Order
         {
-            Type = Enum.Parse<OrderType>(dto.Type),
+            Type = orderType,
             Amount = dto.Amount,
             Description = dto.Description,
             UserId = userId,
@@ -85,8 +94,8 @@ public class OrdersController : ControllerBase
             UserId = o.UserId,
             UserName = o.User.Name,
             CustomerId = o.CustomerId,
-            CustomerName = o.Customer != null 
-                ? o.Customer.Name 
+            CustomerName = o.Customer != null
+                ? o.Customer.Name
                 : null
         });
 
