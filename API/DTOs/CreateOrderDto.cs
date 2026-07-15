@@ -8,5 +8,5 @@ public class CreateOrderDto
 
     public string? Description { get; set; }
 
-    public int CustomerId { get; set; }
+    public int? CustomerId { get; set; }
 }

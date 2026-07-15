@@ -3,5 +3,6 @@ namespace Domain.Enums;
 public enum TransactionType
 {
     Payment,
-    Receipt
+    Receipt,
+    Advance
 }

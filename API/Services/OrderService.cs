@@ -18,6 +18,7 @@ public class OrderService : IOrderService
         _auditLogService = auditLogService;
     }
 
+
     public async Task<Order?> ApproveOrderAsync(int orderId, int userId)
     {
         var order = await _context.Orders
@@ -36,6 +37,7 @@ public class OrderService : IOrderService
         // تغيير حالة الطلب
         order.Status = OrderStatus.Approved;
 
+
         // إنشاء سجل الموافقة
         var approval = new Approval
         {
@@ -47,10 +49,19 @@ public class OrderService : IOrderService
 
         _context.Approvals.Add(approval);
 
+
+
         // إنشاء الحركة المالية
         var transaction = new Transaction
         {
-            Type = (TransactionType)order.Type,
+            Type = order.Type switch
+            {
+                OrderType.Payment => TransactionType.Payment,
+                OrderType.Receipt => TransactionType.Receipt,
+                OrderType.Advance => TransactionType.Advance,
+                _ => throw new InvalidOperationException("Invalid order type")
+            },
+
             Status = TransactionStatus.Completed,
             Amount = order.Amount,
             Description = order.Description,
@@ -60,9 +71,13 @@ public class OrderService : IOrderService
             CreatedAt = DateTime.UtcNow
         };
 
+
         _context.Transactions.Add(transaction);
 
+
         await _context.SaveChangesAsync();
+
+
 
         // تسجيل العملية في Audit Log
         await _auditLogService.CreateAsync(
@@ -71,8 +86,11 @@ public class OrderService : IOrderService
             order.Id
         );
 
+
         return order;
     }
+
+
 
     public async Task<Order?> RejectOrderAsync(int orderId, int userId)
     {
@@ -87,8 +105,12 @@ public class OrderService : IOrderService
         if (order.Status != OrderStatus.Pending)
             return null;
 
+
+
         // تغيير حالة الطلب
         order.Status = OrderStatus.Rejected;
+
+
 
         // تسجيل الرفض
         var approval = new Approval
@@ -99,9 +121,13 @@ public class OrderService : IOrderService
             CreatedAt = DateTime.UtcNow
         };
 
+
         _context.Approvals.Add(approval);
 
+
         await _context.SaveChangesAsync();
+
+
 
         // تسجيل العملية في Audit Log
         await _auditLogService.CreateAsync(
@@ -109,6 +135,7 @@ public class OrderService : IOrderService
             userId,
             order.Id
         );
+
 
         return order;
     }
