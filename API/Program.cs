@@ -3,7 +3,6 @@ using Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Swashbuckle.AspNetCore;
 using System.Text;
 using Domain.Entities;
 using API.Authorization;
@@ -48,7 +47,7 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
-
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 
 // ===============================
 // JWT Authentication
@@ -82,14 +81,7 @@ builder.Services.AddAuthentication(
 // ===============================
 // Authorization
 // ===============================
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("Permission", policy =>
-    {
-        policy.Requirements.Add(new PermissionRequirement(""));
-    });
-});
-
+builder.Services.AddAuthorization();
 
 // ===============================
 // Build Application

@@ -1,5 +1,6 @@
 using API.Services;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace API.Authorization;
 
@@ -19,7 +20,9 @@ public class PermissionAuthorizationHandler
         AuthorizationHandlerContext context,
         PermissionRequirement requirement)
     {
-        var userIdClaim = context.User.FindFirst("id");
+        var userIdClaim = context.User.FindFirst(
+            ClaimTypes.NameIdentifier
+        );
 
         if (userIdClaim == null)
             return;

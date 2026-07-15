@@ -4,12 +4,13 @@ using Infrastructure.Data;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using API.DTOs;
+using API.Authorization;
 
 namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize]
 public class UsersController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -24,6 +25,7 @@ public class UsersController : ControllerBase
 
     // GET: api/users
     [HttpGet]
+    [PermissionAuthorize("View_Users")]
     public async Task<IActionResult> GetAllUsers()
     {
         var users = await _context.Users
@@ -45,8 +47,9 @@ public class UsersController : ControllerBase
 
     // POST: api/users
     [HttpPost]
+    [PermissionAuthorize("Create_User")]
     public async Task<IActionResult> CreateUser(
-    [FromBody] CreateUserDto dto)
+        [FromBody] CreateUserDto dto)
     {
         var existingUser = await _context.Users
             .AnyAsync(u => u.Email == dto.Email);
@@ -67,7 +70,7 @@ public class UsersController : ControllerBase
             RoleId = dto.RoleId
         };
 
-        
+
         _context.Users.Add(user);
 
         await _context.SaveChangesAsync();
