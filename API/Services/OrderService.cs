@@ -8,33 +8,33 @@ namespace API.Services;
 public class OrderService : IOrderService
 {
     private readonly AppDbContext _context;
+    private readonly IAuditLogService _auditLogService;
 
-    public OrderService(AppDbContext context)
+    public OrderService(
+        AppDbContext context,
+        IAuditLogService auditLogService)
     {
         _context = context;
+        _auditLogService = auditLogService;
     }
-
 
     public async Task<Order?> ApproveOrderAsync(int orderId, int userId)
     {
-        // جلب الطلب
         var order = await _context.Orders
             .FirstOrDefaultAsync(o => o.Id == orderId);
 
 
-        // إذا لم يوجد الطلب
         if (order == null)
             return null;
 
 
-        // لا يسمح بالموافقة على طلب تمت معالجته سابقاً
         if (order.Status != OrderStatus.Pending)
             return null;
 
 
+
         // تغيير حالة الطلب
         order.Status = OrderStatus.Approved;
-
 
         // إنشاء سجل الموافقة
         var approval = new Approval
@@ -47,8 +47,7 @@ public class OrderService : IOrderService
 
         _context.Approvals.Add(approval);
 
-
-        // إنشاء الحركة المالية بعد الموافقة فقط
+        // إنشاء الحركة المالية
         var transaction = new Transaction
         {
             Type = (TransactionType)order.Type,
@@ -61,21 +60,22 @@ public class OrderService : IOrderService
             CreatedAt = DateTime.UtcNow
         };
 
-
         _context.Transactions.Add(transaction);
-
 
         await _context.SaveChangesAsync();
 
+        // تسجيل العملية في Audit Log
+        await _auditLogService.CreateAsync(
+            "Approve Order",
+            userId,
+            order.Id
+        );
 
         return order;
     }
 
-
-
     public async Task<Order?> RejectOrderAsync(int orderId, int userId)
     {
-        // جلب الطلب
         var order = await _context.Orders
             .FirstOrDefaultAsync(o => o.Id == orderId);
 
@@ -84,14 +84,11 @@ public class OrderService : IOrderService
             return null;
 
 
-        // لا يسمح برفض طلب تمت معالجته
         if (order.Status != OrderStatus.Pending)
             return null;
 
-
-        // تغيير الحالة فقط
+        // تغيير حالة الطلب
         order.Status = OrderStatus.Rejected;
-
 
         // تسجيل الرفض
         var approval = new Approval
@@ -102,15 +99,16 @@ public class OrderService : IOrderService
             CreatedAt = DateTime.UtcNow
         };
 
-
         _context.Approvals.Add(approval);
-
-
-        // لا يوجد Transaction هنا
-
 
         await _context.SaveChangesAsync();
 
+        // تسجيل العملية في Audit Log
+        await _auditLogService.CreateAsync(
+            "Reject Order",
+            userId,
+            order.Id
+        );
 
         return order;
     }

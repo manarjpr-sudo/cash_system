@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Swashbuckle.AspNetCore;
 using System.Text;
+using Domain.Entities;
+using API.Authorization;
+using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,7 +44,10 @@ builder.Services.AddSwaggerGen();
 // ===============================
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
 
 // ===============================
@@ -76,7 +82,13 @@ builder.Services.AddAuthentication(
 // ===============================
 // Authorization
 // ===============================
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Permission", policy =>
+    {
+        policy.Requirements.Add(new PermissionRequirement(""));
+    });
+});
 
 
 // ===============================
@@ -84,6 +96,23 @@ builder.Services.AddAuthorization();
 // ===============================
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    if (!context.Users.Any())
+    {
+        context.Users.Add(new User
+        {
+            Name = "Admin",
+            Email = "admin@example.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
+            RoleId = 1
+        });
+
+        context.SaveChanges();
+    }
+}
 
 // ===============================
 // Swagger UI

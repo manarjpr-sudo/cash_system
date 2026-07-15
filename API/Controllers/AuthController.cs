@@ -13,27 +13,45 @@ public class AuthController : ControllerBase
     private readonly AppDbContext _context;
     private readonly JwtTokenService _jwtService;
 
-    public AuthController(AppDbContext context, JwtTokenService jwtService)
+    public AuthController(
+        AppDbContext context,
+        JwtTokenService jwtService)
     {
         _context = context;
         _jwtService = jwtService;
     }
 
+
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginDto dto)
+    public async Task<IActionResult> Login(
+        [FromBody] LoginDto dto)
     {
         var user = await _context.Users
             .Include(u => u.Role)
-            .FirstOrDefaultAsync(u => u.Email == dto.Email && u.Password == dto.Password);
+            .FirstOrDefaultAsync(u => u.Email == dto.Email);
+
 
         if (user == null)
             return Unauthorized("Invalid credentials");
 
+
+        var validPassword = BCrypt.Net.BCrypt.Verify(
+            dto.Password,
+            user.PasswordHash
+        );
+
+
+        if (!validPassword)
+            return Unauthorized("Invalid credentials");
+
+
         var token = _jwtService.CreateToken(user);
+
 
         return Ok(new
         {
             token,
+
             user = new
             {
                 user.Id,

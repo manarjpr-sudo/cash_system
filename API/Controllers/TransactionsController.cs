@@ -30,19 +30,37 @@ public class TransactionsController : ControllerBase
         var result = transactions.Select(t => new TransactionResponseDto
         {
             Id = t.Id,
+
             Type = t.Type.ToString(),
+
             Status = t.Status.ToString(),
+
             Amount = t.Amount,
+
             Description = t.Description,
+
             CreatedAt = t.CreatedAt,
-            OrderId = t.OrderId ?? 0,
+
+
+            OrderId = t.OrderId,
+
+
             UserId = t.UserId,
-            UserName = t.User.Name
+
+            UserName = t.User.Name,
+
+
+            CustomerId = t.CustomerId,
+
+            CustomerName = t.Customer != null
+                ? t.Customer.Name
+                : null
         });
 
 
         return Ok(result);
     }
+
 
 
 
@@ -57,17 +75,35 @@ public class TransactionsController : ControllerBase
             return NotFound("Transaction not found");
 
 
+
         var result = new TransactionResponseDto
         {
             Id = transaction.Id,
+
             Type = transaction.Type.ToString(),
+
             Status = transaction.Status.ToString(),
+
             Amount = transaction.Amount,
+
             Description = transaction.Description,
+
             CreatedAt = transaction.CreatedAt,
-            OrderId = transaction.OrderId ?? 0,
+
+
+            OrderId = transaction.OrderId,
+
+
             UserId = transaction.UserId,
-            UserName = transaction.User.Name
+
+            UserName = transaction.User.Name,
+
+
+            CustomerId = transaction.CustomerId,
+
+            CustomerName = transaction.Customer != null
+                ? transaction.Customer.Name
+                : null
         };
 
 

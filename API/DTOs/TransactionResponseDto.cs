@@ -14,9 +14,16 @@ public class TransactionResponseDto
 
     public DateTime CreatedAt { get; set; }
 
-    public int OrderId { get; set; }
+
+    public int? OrderId { get; set; }
+
 
     public int UserId { get; set; }
 
     public string UserName { get; set; }
+
+
+    public int? CustomerId { get; set; }
+
+    public string? CustomerName { get; set; }
 }

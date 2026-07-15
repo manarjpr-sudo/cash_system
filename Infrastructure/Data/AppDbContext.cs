@@ -93,6 +93,81 @@ public class AppDbContext : DbContext
             }
         );
 
+        modelBuilder.Entity<User>().HasData(
+            new User
+            {
+                Id = 1,
+                Name = "Admin",
+                Email = "admin@example.com",
+                PasswordHash = "$2a$11$9Q3m3wYzq3QxJ9L7H8u7UO7X4vQyQfYpK5WqK9v1Q0QmQm1QmQmQm",
+                RoleId = 1
+            }
+        );
+
+        // Seed default permissions
+        modelBuilder.Entity<Permission>().HasData(
+            new Permission
+            {
+                Id = 1,
+                Name = "Create_User"
+            },
+            new Permission
+            {
+                Id = 2,
+                Name = "View_Users"
+            },
+            new Permission
+            {
+                Id = 3,
+                Name = "Create_Order"
+            },
+            new Permission
+            {
+                Id = 4,
+                Name = "Approve_Order"
+            },
+            new Permission
+            {
+                Id = 5,
+                Name = "Reject_Order"
+            },
+            new Permission
+            {
+                Id = 6,
+                Name = "View_Orders"
+            },
+            new Permission
+            {
+                Id = 7,
+                Name = "View_Transactions"
+            },
+            new Permission
+            {
+                Id = 8,
+                Name = "Manage_Settings"
+            }
+        );
+
+        // Seed Role Permissions
+        modelBuilder.Entity<RolePermission>().HasData(
+
+            // Admin permissions
+            new RolePermission { RoleId = 1, PermissionId = 1 },
+            new RolePermission { RoleId = 1, PermissionId = 2 },
+            new RolePermission { RoleId = 1, PermissionId = 3 },
+            new RolePermission { RoleId = 1, PermissionId = 4 },
+            new RolePermission { RoleId = 1, PermissionId = 5 },
+            new RolePermission { RoleId = 1, PermissionId = 6 },
+            new RolePermission { RoleId = 1, PermissionId = 7 },
+            new RolePermission { RoleId = 1, PermissionId = 8 },
+
+
+            // Cashier permissions
+            new RolePermission { RoleId = 2, PermissionId = 3 },
+            new RolePermission { RoleId = 2, PermissionId = 6 },
+            new RolePermission { RoleId = 2, PermissionId = 7 }
+
+        );
 
 
         // Approval - Order relationship

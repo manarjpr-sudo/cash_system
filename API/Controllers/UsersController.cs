@@ -59,10 +59,15 @@ public class UsersController : ControllerBase
         {
             Name = dto.Name,
             Email = dto.Email,
-            Password = dto.Password,
+
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(
+                dto.Password
+            ),
+
             RoleId = dto.RoleId
         };
 
+        
         _context.Users.Add(user);
 
         await _context.SaveChangesAsync();
