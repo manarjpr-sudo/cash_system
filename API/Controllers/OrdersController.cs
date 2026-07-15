@@ -123,16 +123,16 @@ public class OrdersController : ControllerBase
             return BadRequest("Order cannot be approved");
 
 
-        return Ok(new
+        return Ok(new OrderActionResponseDto
         {
-            result.Id,
+            Id = result.Id,
             Type = result.Type.ToString(),
             Status = result.Status.ToString(),
-            result.Amount,
-            result.Description,
-            result.CreatedAt,
-            result.UserId,
-            result.CustomerId
+            Amount = result.Amount,
+            Description = result.Description,
+            CreatedAt = result.CreatedAt,
+            UserId = result.UserId,
+            CustomerId = result.CustomerId
         });
     }
 
@@ -156,16 +156,16 @@ public class OrdersController : ControllerBase
             return BadRequest("Order cannot be rejected");
 
 
-        return Ok(new
+        return Ok(new OrderActionResponseDto
         {
-            result.Id,
+            Id = result.Id,
             Type = result.Type.ToString(),
             Status = result.Status.ToString(),
-            result.Amount,
-            result.Description,
-            result.CreatedAt,
-            result.UserId,
-            result.CustomerId
+            Amount = result.Amount,
+            Description = result.Description,
+            CreatedAt = result.CreatedAt,
+            UserId = result.UserId,
+            CustomerId = result.CustomerId
         });
     }
 }
