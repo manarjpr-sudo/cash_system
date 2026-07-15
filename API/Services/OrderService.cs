@@ -33,12 +33,9 @@ public class OrderService : IOrderService
             return null;
 
 
-
-        // تغيير حالة الطلب
         order.Status = OrderStatus.Approved;
 
 
-        // إنشاء سجل الموافقة
         var approval = new Approval
         {
             OrderId = order.Id,
@@ -51,17 +48,18 @@ public class OrderService : IOrderService
 
 
 
-        // إنشاء الحركة المالية
+        var transactionType = order.Type switch
+        {
+            OrderType.Payment => TransactionType.Payment,
+            OrderType.Receipt => TransactionType.Receipt,
+            OrderType.Advance => TransactionType.Payment,
+            _ => throw new InvalidOperationException("Invalid order type")
+        };
+
+
         var transaction = new Transaction
         {
-            Type = order.Type switch
-            {
-                OrderType.Payment => TransactionType.Payment,
-                OrderType.Receipt => TransactionType.Receipt,
-                OrderType.Advance => TransactionType.Advance,
-                _ => throw new InvalidOperationException("Invalid order type")
-            },
-
+            Type = transactionType,
             Status = TransactionStatus.Completed,
             Amount = order.Amount,
             Description = order.Description,
@@ -78,8 +76,6 @@ public class OrderService : IOrderService
         await _context.SaveChangesAsync();
 
 
-
-        // تسجيل العملية في Audit Log
         await _auditLogService.CreateAsync(
             "Approve Order",
             userId,
@@ -106,13 +102,9 @@ public class OrderService : IOrderService
             return null;
 
 
-
-        // تغيير حالة الطلب
         order.Status = OrderStatus.Rejected;
 
 
-
-        // تسجيل الرفض
         var approval = new Approval
         {
             OrderId = order.Id,
@@ -128,8 +120,6 @@ public class OrderService : IOrderService
         await _context.SaveChangesAsync();
 
 
-
-        // تسجيل العملية في Audit Log
         await _auditLogService.CreateAsync(
             "Reject Order",
             userId,

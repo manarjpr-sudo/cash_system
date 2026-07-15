@@ -123,7 +123,17 @@ public class OrdersController : ControllerBase
             return BadRequest("Order cannot be approved");
 
 
-        return Ok(result);
+        return Ok(new
+        {
+            result.Id,
+            Type = result.Type.ToString(),
+            Status = result.Status.ToString(),
+            result.Amount,
+            result.Description,
+            result.CreatedAt,
+            result.UserId,
+            result.CustomerId
+        });
     }
 
 
@@ -146,6 +156,16 @@ public class OrdersController : ControllerBase
             return BadRequest("Order cannot be rejected");
 
 
-        return Ok(result);
+        return Ok(new
+        {
+            result.Id,
+            Type = result.Type.ToString(),
+            Status = result.Status.ToString(),
+            result.Amount,
+            result.Description,
+            result.CreatedAt,
+            result.UserId,
+            result.CustomerId
+        });
     }
 }
