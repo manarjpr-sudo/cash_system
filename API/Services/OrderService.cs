@@ -10,6 +10,7 @@ public class OrderService : IOrderService
     private readonly AppDbContext _context;
     private readonly IAuditLogService _auditLogService;
 
+
     public OrderService(
         AppDbContext context,
         IAuditLogService auditLogService)
@@ -19,114 +20,257 @@ public class OrderService : IOrderService
     }
 
 
-    public async Task<Order?> ApproveOrderAsync(int orderId, int userId)
+
+
+
+    public async Task<Order?> ApproveOrderAsync(
+        int orderId,
+        int userId)
     {
-        var order = await _context.Orders
-            .FirstOrDefaultAsync(o => o.Id == orderId);
+
+        using var transaction =
+            await _context.Database.BeginTransactionAsync();
 
 
-        if (order == null)
-            return null;
-
-
-        if (order.Status != OrderStatus.Pending)
-            return null;
-
-
-        order.Status = OrderStatus.Approved;
-
-
-        var approval = new Approval
+        try
         {
-            OrderId = order.Id,
-            UserId = userId,
-            Status = ApprovalStatus.Approved,
-            CreatedAt = DateTime.UtcNow
-        };
 
-        _context.Approvals.Add(approval);
+            var order = await _context.Orders
+                .FirstOrDefaultAsync(o => o.Id == orderId);
 
 
 
-        var transactionType = order.Type switch
+            if (order == null)
+                return null;
+
+
+
+            if (order.Status != OrderStatus.Pending)
+                return null;
+
+
+
+            var existingTransaction =
+                await _context.Transactions
+                    .AnyAsync(t => t.OrderId == order.Id);
+
+
+
+            if (existingTransaction)
+                return null;
+
+
+
+
+
+            order.Status = OrderStatus.Approved;
+
+
+
+
+
+            var approval = new Approval
+            {
+                OrderId = order.Id,
+
+                UserId = userId,
+
+                Status = ApprovalStatus.Approved,
+
+                CreatedAt = DateTime.UtcNow
+            };
+
+
+            _context.Approvals.Add(approval);
+
+
+
+
+
+            var transactionType = order.Type switch
+            {
+                OrderType.Payment =>
+                    TransactionType.Payment,
+
+
+                OrderType.Receipt =>
+                    TransactionType.Receipt,
+
+
+                OrderType.Advance =>
+                    TransactionType.Payment,
+
+
+                _ => throw new InvalidOperationException(
+                    "Invalid order type"
+                )
+            };
+
+
+
+
+
+            var financialTransaction = new Transaction
+            {
+                Type = transactionType,
+
+                Status = TransactionStatus.Completed,
+
+                Amount = order.Amount,
+
+                Description = order.Description,
+
+                OrderId = order.Id,
+
+
+                // صاحب الطلب
+                UserId = order.UserId,
+
+
+                CustomerId = order.CustomerId,
+
+
+                CreatedAt = DateTime.UtcNow
+            };
+
+
+
+            _context.Transactions.Add(financialTransaction);
+
+
+
+            await _context.SaveChangesAsync();
+
+
+
+
+
+            await _auditLogService.CreateAsync(
+                $"Approve Order #{order.Id}",
+                userId,
+                order.Id
+            );
+
+
+
+
+
+            await transaction.CommitAsync();
+
+
+
+            return order;
+
+        }
+
+        catch
         {
-            OrderType.Payment => TransactionType.Payment,
-            OrderType.Receipt => TransactionType.Receipt,
-            OrderType.Advance => TransactionType.Payment,
-            _ => throw new InvalidOperationException("Invalid order type")
-        };
 
+            await transaction.RollbackAsync();
 
-        var transaction = new Transaction
-        {
-            Type = transactionType,
-            Status = TransactionStatus.Completed,
-            Amount = order.Amount,
-            Description = order.Description,
-            OrderId = order.Id,
-            UserId = userId,
-            CustomerId = order.CustomerId,
-            CreatedAt = DateTime.UtcNow
-        };
+            throw;
 
+        }
 
-        _context.Transactions.Add(transaction);
-
-
-        await _context.SaveChangesAsync();
-
-
-        await _auditLogService.CreateAsync(
-            "Approve Order",
-            userId,
-            order.Id
-        );
-
-
-        return order;
     }
 
 
 
-    public async Task<Order?> RejectOrderAsync(int orderId, int userId)
+
+
+
+
+
+
+    public async Task<Order?> RejectOrderAsync(
+        int orderId,
+        int userId)
     {
-        var order = await _context.Orders
-            .FirstOrDefaultAsync(o => o.Id == orderId);
+
+        using var transaction =
+            await _context.Database.BeginTransactionAsync();
 
 
-        if (order == null)
-            return null;
 
-
-        if (order.Status != OrderStatus.Pending)
-            return null;
-
-
-        order.Status = OrderStatus.Rejected;
-
-
-        var approval = new Approval
+        try
         {
-            OrderId = order.Id,
-            UserId = userId,
-            Status = ApprovalStatus.Rejected,
-            CreatedAt = DateTime.UtcNow
-        };
+
+            var order = await _context.Orders
+                .FirstOrDefaultAsync(o => o.Id == orderId);
 
 
-        _context.Approvals.Add(approval);
 
 
-        await _context.SaveChangesAsync();
+            if (order == null)
+                return null;
 
 
-        await _auditLogService.CreateAsync(
-            "Reject Order",
-            userId,
-            order.Id
-        );
 
 
-        return order;
+            if (order.Status != OrderStatus.Pending)
+                return null;
+
+
+
+
+
+            order.Status = OrderStatus.Rejected;
+
+
+
+
+
+            var approval = new Approval
+            {
+                OrderId = order.Id,
+
+                UserId = userId,
+
+                Status = ApprovalStatus.Rejected,
+
+                CreatedAt = DateTime.UtcNow
+            };
+
+
+
+            _context.Approvals.Add(approval);
+
+
+
+            await _context.SaveChangesAsync();
+
+
+
+
+
+
+            await _auditLogService.CreateAsync(
+                $"Reject Order #{order.Id}",
+                userId,
+                order.Id
+            );
+
+
+
+
+
+            await transaction.CommitAsync();
+
+
+
+            return order;
+
+        }
+
+        catch
+        {
+
+            await transaction.RollbackAsync();
+
+            throw;
+
+        }
+
     }
+
 }

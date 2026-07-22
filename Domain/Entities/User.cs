@@ -11,9 +11,14 @@ public class User
     public string PasswordHash { get; set; }
 
 
+    public bool IsActive { get; set; } = true;
+
+
+
     public int RoleId { get; set; }
 
     public Role Role { get; set; }
+
 
 
     public ICollection<Order> Orders { get; set; } = new List<Order>();

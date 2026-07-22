@@ -32,6 +32,21 @@ builder.Services.AddControllers()
 
 
 // ===============================
+// CORS
+// ===============================
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactPolicy", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+
+// ===============================
 // Swagger
 // ===============================
 builder.Services.AddEndpointsApiExplorer();
@@ -48,6 +63,7 @@ builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+
 
 // ===============================
 // JWT Authentication
@@ -83,10 +99,12 @@ builder.Services.AddAuthentication(
 // ===============================
 builder.Services.AddAuthorization();
 
+
 // ===============================
 // Build Application
 // ===============================
 var app = builder.Build();
+
 
 using (var scope = app.Services.CreateScope())
 {
@@ -106,6 +124,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+
 // ===============================
 // Swagger UI
 // ===============================
@@ -119,6 +138,9 @@ if (app.Environment.IsDevelopment())
 // ===============================
 // HTTP Pipeline
 // ===============================
+
+app.UseCors("ReactPolicy");
+
 app.UseHttpsRedirection();
 
 app.UseAuthentication();

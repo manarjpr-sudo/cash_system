@@ -1,38 +1,62 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using API.Services;
+using API.Authorization;
 
 namespace API.Controllers;
 
+
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize]
 public class AuditLogsController : ControllerBase
 {
-    private readonly AppDbContext _context;
 
-    public AuditLogsController(AppDbContext context)
+    private readonly IAuditLogService _auditLogService;
+
+
+    public AuditLogsController(
+        IAuditLogService auditLogService)
     {
-        _context = context;
+        _auditLogService = auditLogService;
     }
 
+
+
+
+
+
+    // GET: api/auditlogs
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    [PermissionAuthorize("View_AuditLogs")]
+    public async Task<IActionResult> GetAllAuditLogs()
     {
-        var logs = await _context.AuditLogs
-            .Include(a => a.User)
-            .Select(a => new
-            {
-                a.Id,
-                a.Action,
-                a.CreatedAt,
-                UserId = a.UserId,
-                UserName = a.User.Name
-            })
-            .OrderByDescending(a => a.CreatedAt)
-            .ToListAsync();
 
-        return Ok(logs);
+        var logs = await _auditLogService.GetAllAsync();
+
+
+
+        var result = logs.Select(log => new
+        {
+            log.Id,
+
+            log.Action,
+
+            UserId = log.UserId,
+
+            UserName = log.User != null
+                ? log.User.Name
+                : null,
+
+            OrderId = log.OrderId,
+
+            CreatedAt = log.CreatedAt
+        });
+
+
+
+        return Ok(result);
+
     }
+
 }

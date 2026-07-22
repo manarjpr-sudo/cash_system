@@ -2,21 +2,31 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using API.Services;
 using API.DTOs;
+using API.Authorization;
+using System.Security.Claims;
 
 namespace API.Controllers;
+
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[PermissionAuthorize("View_Transactions")]
 public class TransactionsController : ControllerBase
 {
+
     private readonly ITransactionService _transactionService;
 
 
-    public TransactionsController(ITransactionService transactionService)
+    public TransactionsController(
+        ITransactionService transactionService)
     {
         _transactionService = transactionService;
     }
+
+
+
+
 
 
 
@@ -24,7 +34,27 @@ public class TransactionsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAllTransactions()
     {
+        var userId = int.Parse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier)!
+        );
+
+
+        var role = User.FindFirstValue(ClaimTypes.Role);
+
+
+
         var transactions = await _transactionService.GetAllAsync();
+
+
+
+        if (role != "Admin")
+        {
+            transactions = transactions
+                .Where(t => t.UserId == userId)
+                .ToList();
+        }
+
+
 
 
         var result = transactions.Select(t => new TransactionResponseDto
@@ -47,7 +77,9 @@ public class TransactionsController : ControllerBase
 
             UserId = t.UserId,
 
-            UserName = t.User.Name,
+            UserName = t.User != null
+                ? t.User.Name
+                : null,
 
 
             CustomerId = t.CustomerId,
@@ -55,6 +87,7 @@ public class TransactionsController : ControllerBase
             CustomerName = t.Customer != null
                 ? t.Customer.Name
                 : null
+
         });
 
 
@@ -64,15 +97,25 @@ public class TransactionsController : ControllerBase
 
 
 
+
+
+
     // GET: api/transactions/{id}
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetTransactionById(int id)
+    public async Task<IActionResult> GetTransactionById(
+        int id)
     {
-        var transaction = await _transactionService.GetByIdAsync(id);
+
+        var transaction =
+            await _transactionService.GetByIdAsync(id);
+
 
 
         if (transaction == null)
-            return NotFound("Transaction not found");
+            return NotFound(
+                "Transaction not found"
+            );
+
 
 
 
@@ -96,7 +139,9 @@ public class TransactionsController : ControllerBase
 
             UserId = transaction.UserId,
 
-            UserName = transaction.User.Name,
+            UserName = transaction.User != null
+                ? transaction.User.Name
+                : null,
 
 
             CustomerId = transaction.CustomerId,
@@ -107,6 +152,9 @@ public class TransactionsController : ControllerBase
         };
 
 
+
         return Ok(result);
+
     }
+
 }
