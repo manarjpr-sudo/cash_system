@@ -132,14 +132,39 @@ public class OrdersController : ControllerBase
     public async Task<IActionResult> GetAllOrders()
     {
 
+        var userId = int.Parse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier)!
+        );
 
-        var orders = await _context.Orders
+
+        var role = User.FindFirstValue(ClaimTypes.Role);
+
+
+
+        var query = _context.Orders
 
             .Include(o => o.User)
 
             .Include(o => o.Customer)
 
-            .ToListAsync();
+            .AsQueryable();
+
+
+
+
+
+        if (role != "Admin")
+        {
+            query = query
+                .Where(o => o.UserId == userId);
+        }
+
+
+
+
+
+        var orders = await query.ToListAsync();
+
 
 
 
