@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Domain.Entities;
 using API.Authorization;
 using Microsoft.AspNetCore.Authorization;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,15 +14,18 @@ var builder = WebApplication.CreateBuilder(args);
 // ===============================
 // Database
 // ===============================
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")
     ));
 
 
+
 // ===============================
 // Controllers
 // ===============================
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -31,9 +34,11 @@ builder.Services.AddControllers()
     });
 
 
+
 // ===============================
 // CORS
 // ===============================
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactPolicy", policy =>
@@ -46,33 +51,48 @@ builder.Services.AddCors(options =>
 });
 
 
+
 // ===============================
 // Swagger
 // ===============================
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
 
 
 // ===============================
 // Dependency Injection
 // ===============================
+
 builder.Services.AddScoped<IOrderService, OrderService>();
+
 builder.Services.AddScoped<ITransactionService, TransactionService>();
+
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+
 builder.Services.AddScoped<JwtTokenService>();
+
 builder.Services.AddScoped<PermissionService>();
+
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+
 
 
 // ===============================
 // JWT Authentication
 // ===============================
+
 var jwtSettings = builder.Configuration.GetSection("Jwt");
+
 
 var key = Encoding.UTF8.GetBytes(
     jwtSettings["Key"]!
 );
+
+
 
 builder.Services.AddAuthentication(
     JwtBearerDefaults.AuthenticationScheme
@@ -82,57 +102,53 @@ builder.Services.AddAuthentication(
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
+
         ValidateAudience = true,
+
         ValidateLifetime = true,
+
         ValidateIssuerSigningKey = true,
 
+
         ValidIssuer = jwtSettings["Issuer"],
+
         ValidAudience = jwtSettings["Audience"],
 
-        IssuerSigningKey = new SymmetricSecurityKey(key)
+
+        IssuerSigningKey =
+            new SymmetricSecurityKey(key)
     };
 });
+
 
 
 // ===============================
 // Authorization
 // ===============================
+
 builder.Services.AddAuthorization();
 
 
+
 // ===============================
-// Build Application
+// Build
 // ===============================
+
 var app = builder.Build();
 
 
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    if (!context.Users.Any())
-    {
-        context.Users.Add(new User
-        {
-            Name = "Admin",
-            Email = "admin@example.com",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
-            RoleId = 1
-        });
-
-        context.SaveChanges();
-    }
-}
-
 
 // ===============================
-// Swagger UI
+// Swagger
 // ===============================
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
+
     app.UseSwaggerUI();
 }
+
 
 
 // ===============================
@@ -141,11 +157,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("ReactPolicy");
 
+
 app.UseHttpsRedirection();
+
 
 app.UseAuthentication();
 
+
 app.UseAuthorization();
+
 
 app.MapControllers();
 

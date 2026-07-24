@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Infrastructure.Data;
-using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using API.DTOs;
 using API.Authorization;
@@ -49,13 +48,9 @@ public class UsersController : ControllerBase
             .Select(u => new UserResponseDto
             {
                 Id = u.Id,
-
                 Name = u.Name,
-
                 Email = u.Email,
-
                 Role = u.Role.Name,
-
                 IsActive = u.IsActive
 
             })
@@ -65,9 +60,7 @@ public class UsersController : ControllerBase
 
 
         return Ok(users);
-
     }
-
 
 
 
@@ -99,44 +92,19 @@ public class UsersController : ControllerBase
 
 
 
-
-
-        var roleExists = await _context.Roles
-            .AnyAsync(r => r.Id == dto.RoleId);
-
-
-
-        if (!roleExists)
-
-            return BadRequest(
-                "Invalid role"
-            );
-
-
-
-
-
-
-
-        var user = new User
+        var user = new Domain.Entities.User
         {
 
             Name = dto.Name,
 
-
             Email = dto.Email,
-
-
 
             PasswordHash =
                 BCrypt.Net.BCrypt.HashPassword(
                     dto.Password
                 ),
 
-
-
             RoleId = dto.RoleId,
-
 
             IsActive = true
 
@@ -144,17 +112,108 @@ public class UsersController : ControllerBase
 
 
 
-
-
-
-
         _context.Users.Add(user);
-
 
 
         await _context.SaveChangesAsync();
 
 
+
+        var currentUserId = int.Parse(
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier
+            )!
+        );
+
+
+
+        await _auditLogService.CreateAsync(
+            "Create User",
+            currentUserId
+        );
+
+
+
+        return await GetUserResponse(user.Id);
+
+    }
+
+
+
+
+
+
+
+
+
+    // PUT: api/users/{id}
+    [HttpPut("{id}")]
+    [PermissionAuthorize("Edit_User")]
+    public async Task<IActionResult> UpdateUser(
+        int id,
+        [FromBody] UpdateUserDto dto)
+    {
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id);
+
+
+
+        if (user == null)
+
+            return NotFound(
+                "User not found"
+            );
+
+
+
+
+
+        var emailExists = await _context.Users
+
+            .AnyAsync(u =>
+                u.Email == dto.Email &&
+                u.Id != id
+            );
+
+
+
+        if (emailExists)
+
+            return BadRequest(
+                "Email already exists"
+            );
+
+
+
+
+
+
+        user.Name = dto.Name;
+
+        user.Email = dto.Email;
+
+        user.RoleId = dto.RoleId;
+
+        user.IsActive = dto.IsActive;
+
+
+
+
+        // تغيير كلمة المرور فقط إذا تم إرسالها
+        if (!string.IsNullOrWhiteSpace(dto.Password))
+        {
+            user.PasswordHash =
+                BCrypt.Net.BCrypt.HashPassword(
+                    dto.Password
+                );
+        }
+
+
+
+
+
+        await _context.SaveChangesAsync();
 
 
 
@@ -169,11 +228,8 @@ public class UsersController : ControllerBase
 
 
 
-
-
-
         await _auditLogService.CreateAsync(
-            "Create User",
+            "Update User",
             currentUserId
         );
 
@@ -181,14 +237,26 @@ public class UsersController : ControllerBase
 
 
 
+        return await GetUserResponse(id);
+
+    }
 
 
 
-        var createdUser = await _context.Users
+
+
+
+
+
+
+    private async Task<IActionResult> GetUserResponse(int id)
+    {
+
+        var user = await _context.Users
 
             .Include(u => u.Role)
 
-            .Where(u => u.Id == user.Id)
+            .Where(u => u.Id == id)
 
             .Select(u => new UserResponseDto
             {
@@ -209,11 +277,44 @@ public class UsersController : ControllerBase
 
 
 
-
-
-
-        return Ok(createdUser);
+        return Ok(user);
 
     }
+
+
+    // DELETE: api/users/{id}
+    [HttpDelete("{id}")]
+    [PermissionAuthorize("Delete_User")]
+    public async Task<IActionResult> DeleteUser(int id)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id);
+
+
+        if (user == null)
+            return NotFound("User not found");
+
+
+        _context.Users.Remove(user);
+
+        await _context.SaveChangesAsync();
+
+
+        var currentUserId = int.Parse(
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier
+            )!
+        );
+
+
+        await _auditLogService.CreateAsync(
+            "Delete User",
+            currentUserId
+        );
+
+
+        return Ok("User deleted successfully");
+    }
+
 
 }

@@ -10,8 +10,10 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
+
     private readonly AppDbContext _context;
     private readonly JwtTokenService _jwtService;
+
 
 
     public AuthController(
@@ -24,22 +26,41 @@ public class AuthController : ControllerBase
 
 
 
+
+
+
+
     [HttpPost("login")]
     public async Task<IActionResult> Login(
         [FromBody] LoginDto dto)
     {
 
+
         var user = await _context.Users
+
             .Include(u => u.Role)
+
                 .ThenInclude(r => r.RolePermissions)
+
                     .ThenInclude(rp => rp.Permission)
+
             .FirstOrDefaultAsync(
                 u => u.Email == dto.Email
             );
 
 
+
+
+
         if (user == null)
-            return Unauthorized("Invalid credentials");
+
+            return Unauthorized(
+                "Invalid credentials"
+            );
+
+
+
+
 
 
 
@@ -51,8 +72,20 @@ public class AuthController : ControllerBase
 
 
 
+
+
+
         if (!validPassword)
-            return Unauthorized("Invalid credentials");
+
+            return Unauthorized(
+                "Invalid credentials"
+            );
+
+
+
+
+
+
 
 
 
@@ -60,18 +93,36 @@ public class AuthController : ControllerBase
 
 
 
+
+
+
+
+
+
         var permissions = user.Role.RolePermissions
+
             .Select(rp => rp.Permission.Name)
+
             .ToList();
 
 
 
+
+
+
+
+
+
         return Ok(new
+
         {
+
             token,
 
             user = new
+
             {
+
                 user.Id,
 
                 user.Name,
@@ -80,9 +131,15 @@ public class AuthController : ControllerBase
 
                 Role = user.Role.Name,
 
-                Permissions = permissions
+
+                permissions = permissions
+
             }
+
         });
 
+
     }
+
+
 }

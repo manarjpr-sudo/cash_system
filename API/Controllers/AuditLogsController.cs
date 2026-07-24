@@ -21,11 +21,6 @@ public class AuditLogsController : ControllerBase
         _auditLogService = auditLogService;
     }
 
-
-
-
-
-
     // GET: api/auditlogs
     [HttpGet]
     [PermissionAuthorize("View_AuditLogs")]
