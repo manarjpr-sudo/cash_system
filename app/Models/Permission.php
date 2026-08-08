@@ -2,21 +2,28 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class Permission extends Model
+class Operation extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'name',
+        'customer_id',
+        'type',
+        'amount',
+        'status',
         'description',
+        'created_by'
     ];
 
-    public function roles(): BelongsToMany
+
+    public function customer()
     {
-        return $this->belongsToMany(Role::class);
+        return $this->belongsTo(Customer::class);
+    }
+
+
+    public function user()
+    {
+        return $this->belongsTo(User::class,'created_by');
     }
 }
