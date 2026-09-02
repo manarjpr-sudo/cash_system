@@ -8,26 +8,22 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CheckPermission
 {
-    public function handle(Request $request, Closure $next, string $permission): Response
-    {
+    public function handle(
+        Request $request,
+        Closure $next,
+        string $permission
+    ): Response {
         $user = $request->user();
 
         if (!$user) {
             return response()->json([
-                'message' => 'Unauthenticated'
+                'message' => 'Unauthenticated',
             ], 401);
         }
 
-        $hasPermission = $user->role
-            ? $user->role
-                ->permissions
-                ->contains('name', $permission)
-            : false;
-
-
-        if (!$hasPermission) {
+        if (!$user->hasPermission($permission)) {
             return response()->json([
-                'message' => 'Forbidden'
+                'message' => 'Forbidden',
             ], 403);
         }
 

@@ -3,27 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class Operation extends Model
+class Permission extends Model
 {
     protected $fillable = [
-        'customer_id',
-        'type',
-        'amount',
-        'status',
+        'name',
         'description',
-        'created_by'
     ];
 
-
-    public function customer()
+    public function roles(): BelongsToMany
     {
-        return $this->belongsTo(Customer::class);
-    }
-
-
-    public function user()
-    {
-        return $this->belongsTo(User::class,'created_by');
+        return $this->belongsToMany(Role::class);
     }
 }

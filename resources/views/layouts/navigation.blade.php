@@ -1,6 +1,3 @@
-<nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
-
-```
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
     <div class="flex justify-between h-16">
@@ -20,31 +17,74 @@
             {{-- Navigation Links --}}
             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
 
-                <x-nav-link
-                    :href="route('dashboard')"
-                    :active="request()->routeIs('dashboard')">
+                {{-- Dashboard --}}
+                @if(Auth::user()->role?->permissions->contains('name', 'view_dashboard'))
 
-                    Dashboard
+                    <x-nav-link
+                        :href="route('dashboard')"
+                        :active="request()->routeIs('dashboard')">
 
-                </x-nav-link>
+                        Dashboard
 
+                    </x-nav-link>
 
-                <x-nav-link
-                    :href="route('customers.index')"
-                    :active="request()->routeIs('customers.*')">
-
-                    Customers
-
-                </x-nav-link>
+                @endif
 
 
-                <x-nav-link
-                    :href="route('operations.index')"
-                    :active="request()->routeIs('operations.*')">
+                {{-- Customers --}}
+                @if(Auth::user()->role?->permissions->contains('name', 'manage_customers'))
 
-                    Operations
+                    <x-nav-link
+                        :href="route('customers.index')"
+                        :active="request()->routeIs('customers.*')">
 
-                </x-nav-link>
+                        Customers
+
+                    </x-nav-link>
+
+                @endif
+
+
+                {{-- Operations --}}
+                @if(Auth::user()->role?->permissions->contains('view_operations'))
+
+                    <x-nav-link
+                        :href="route('operations.index')"
+                        :active="request()->routeIs('operations.*')">
+
+                        Operations
+
+                    </x-nav-link>
+
+                @endif
+
+
+                {{-- Transactions --}}
+                @if(Auth::user()->role?->permissions->contains('name', 'view_transactions'))
+
+                    <x-nav-link
+                        :href="route('transactions.index')"
+                        :active="request()->routeIs('transactions.*')">
+
+                        Transactions
+
+                    </x-nav-link>
+
+                @endif
+
+
+                {{-- Users --}}
+                @if(Auth::user()->role?->permissions->contains('name', 'manage_users'))
+
+                    <x-nav-link
+                        :href="route('users.index')"
+                        :active="request()->routeIs('users.*')">
+
+                        Users
+
+                    </x-nav-link>
+
+                @endif
 
             </div>
 
@@ -161,31 +201,74 @@
 
     <div class="pt-2 pb-3 space-y-1">
 
-        <x-responsive-nav-link
-            :href="route('dashboard')"
-            :active="request()->routeIs('dashboard')">
+        {{-- Dashboard --}}
+        @if(Auth::user()->role?->permissions->contains('name', 'view_dashboard'))
 
-            Dashboard
+            <x-responsive-nav-link
+                :href="route('dashboard')"
+                :active="request()->routeIs('dashboard')">
 
-        </x-responsive-nav-link>
+                Dashboard
 
+            </x-responsive-nav-link>
 
-        <x-responsive-nav-link
-            :href="route('customers.index')"
-            :active="request()->routeIs('customers.*')">
-
-            Customers
-
-        </x-responsive-nav-link>
+        @endif
 
 
-        <x-responsive-nav-link
-            :href="route('operations.index')"
-            :active="request()->routeIs('operations.*')">
+        {{-- Customers --}}
+        @if(Auth::user()->role?->permissions->contains('name', 'manage_customers'))
 
-            Operations
+            <x-responsive-nav-link
+                :href="route('customers.index')"
+                :active="request()->routeIs('customers.*')">
 
-        </x-responsive-nav-link>
+                Customers
+
+            </x-responsive-nav-link>
+
+        @endif
+
+
+        {{-- Operations --}}
+        @if(Auth::user()->role?->permissions->contains('name', 'view_operations'))
+
+            <x-responsive-nav-link
+                :href="route('operations.index')"
+                :active="request()->routeIs('operations.*')">
+
+                Operations
+
+            </x-responsive-nav-link>
+
+        @endif
+
+
+        {{-- Transactions --}}
+        @if(Auth::user()->role?->permissions->contains('name', 'view_transactions'))
+
+            <x-responsive-nav-link
+                :href="route('transactions.index')"
+                :active="request()->routeIs('transactions.*')">
+
+                Transactions
+
+            </x-responsive-nav-link>
+
+        @endif
+
+
+        {{-- Users --}}
+        @if(Auth::user()->role?->permissions->contains('name', 'manage_users'))
+
+            <x-responsive-nav-link
+                :href="route('users.index')"
+                :active="request()->routeIs('users.*')">
+
+                Users
+
+            </x-responsive-nav-link>
+
+        @endif
 
     </div>
 
@@ -231,6 +314,3 @@
     </div>
 
 </div>
-```
-
-</nav>

@@ -1,138 +1,383 @@
-<?php
+<x-slot name="header">
+    <div class="flex justify-between items-center">
 
-namespace App\Http\Controllers;
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            Operations
+        </h2>
 
-use App\Models\Operation;
-use App\Models\Customer;
-use App\Models\Approval;
-use App\Models\Transaction;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+        @if(Auth::user()->role?->permissions->contains('name', 'create_operations'))
+            <a href="{{ route('operations.create') }}"
+               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                + New Operation
+            </a>
+        @endif
 
-class OperationViewController extends Controller
-{
-    public function index(Request $request)
-    {
-        $query = Operation::with(['customer', 'user']);
+    </div>
+</x-slot>
 
-        // Search
-        if ($request->filled('search')) {
-            $search = $request->search;
 
-            $query->where(function ($q) use ($search) {
-                $q->where('type', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhereHas('customer', function ($customerQuery) use ($search) {
-                        $customerQuery->where('name', 'like', "%{$search}%");
-                    });
-            });
-        }
+<div class="py-8">
 
-        // Status filter
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
-        // Type filter
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
-        }
+        <div class="bg-white shadow rounded-lg overflow-hidden">
 
-        // Customer filter
-        if ($request->filled('customer_id')) {
-            $query->where('customer_id', $request->customer_id);
-        }
+            <div class="p-6">
 
-        $operations = $query
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
+                <h3 class="text-lg font-bold mb-5">
+                    Operations List
+                </h3>
 
-        $customers = Customer::orderBy('name')->get();
 
-        return view('operations.index', compact(
-            'operations',
-            'customers'
-        ));
-    }
+                {{-- Search & Filters --}}
 
-    public function create()
-    {
-        $customers = Customer::orderBy('name')->get();
+                <form method="GET"
+                      action="{{ route('operations.index') }}"
+                      class="mb-6">
 
-        return view('operations.create', compact('customers'));
-    }
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'type' => 'required|string|max:50',
-            'amount' => 'required|numeric|min:0',
-            'description' => 'nullable|string',
-        ]);
+                        {{-- Search --}}
 
-        $data['status'] = 'pending';
-        $data['user_id'] = auth()->id();
+                        <input
+                            type="text"
+                            name="search"
+                            value="{{ request('search') }}"
+                            placeholder="Search..."
+                            class="border rounded px-3 py-2">
 
-        Operation::create($data);
 
-        return redirect()
-            ->route('operations.index')
-            ->with('success', 'Operation created successfully.');
-    }
+                        {{-- Status --}}
 
-    public function approve(Operation $operation)
-    {
-        return $this->processApproval($operation, 'approved');
-    }
+                        <select
+                            name="status"
+                            class="border rounded px-3 py-2">
 
-    public function reject(Operation $operation)
-    {
-        return $this->processApproval($operation, 'rejected');
-    }
+                            <option value="">
+                                All Statuses
+                            </option>
 
-    private function processApproval(Operation $operation, string $status)
-    {
-        if ($operation->status !== 'pending') {
-            return redirect()
-                ->route('operations.index')
-                ->with('error', 'This operation has already been processed.');
-        }
+                            <option value="pending"
+                                {{ request('status') == 'pending' ? 'selected' : '' }}>
+                                Pending
+                            </option>
 
-        DB::transaction(function () use ($operation, $status) {
+                            <option value="approved"
+                                {{ request('status') == 'approved' ? 'selected' : '' }}>
+                                Approved
+                            </option>
 
-            Approval::create([
-                'operation_id' => $operation->id,
-                'user_id' => auth()->id(),
-                'status' => $status,
-                'approved_at' => now(),
-            ]);
+                            <option value="rejected"
+                                {{ request('status') == 'rejected' ? 'selected' : '' }}>
+                                Rejected
+                            </option>
 
-            $operation->update([
-                'status' => $status,
-            ]);
+                            <option value="completed"
+                                {{ request('status') == 'completed' ? 'selected' : '' }}>
+                                Completed
+                            </option>
 
-            if ($status === 'approved') {
-                Transaction::create([
-                    'operation_id' => $operation->id,
-                    'customer_id' => $operation->customer_id,
-                    'user_id' => auth()->id(),
-                    'type' => $operation->type,
-                    'amount' => $operation->amount,
-                    'status' => 'completed',
-                    'description' => $operation->description,
-                ]);
-            }
-        });
+                            <option value="cancelled"
+                                {{ request('status') == 'cancelled' ? 'selected' : '' }}>
+                                Cancelled
+                            </option>
 
-        return redirect()
-            ->route('operations.index')
-            ->with(
-                'success',
-                $status === 'approved'
-                    ? 'Operation approved and transaction created successfully.'
-                    : 'Operation rejected successfully.'
-            );
-    }
-}
+                        </select>
+
+
+                        {{-- Type --}}
+
+                        <select
+                            name="type"
+                            class="border rounded px-3 py-2">
+
+                            <option value="">
+                                All Types
+                            </option>
+
+                            <option value="deposit"
+                                {{ request('type') == 'deposit' ? 'selected' : '' }}>
+                                Deposit
+                            </option>
+
+                            <option value="withdraw"
+                                {{ request('type') == 'withdraw' ? 'selected' : '' }}>
+                                Withdraw
+                            </option>
+
+                        </select>
+
+
+                        {{-- Customer --}}
+
+                        <select
+                            name="customer_id"
+                            class="border rounded px-3 py-2">
+
+                            <option value="">
+                                All Customers
+                            </option>
+
+                            @foreach($customers as $customer)
+
+                                <option
+                                    value="{{ $customer->id }}"
+                                    {{ request('customer_id') == $customer->id ? 'selected' : '' }}>
+
+                                    {{ $customer->name }}
+
+                                </option>
+
+                            @endforeach
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="mt-4 flex gap-2">
+
+                        <button
+                            type="submit"
+                            class="bg-gray-800 hover:bg-gray-900 text-white px-5 py-2 rounded">
+
+                            Search / Filter
+
+                        </button>
+
+
+                        <a
+                            href="{{ route('operations.index') }}"
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-5 py-2 rounded">
+
+                            Reset
+
+                        </a>
+
+                    </div>
+
+                </form>
+
+
+                {{-- Operations Table --}}
+
+                <div class="overflow-x-auto">
+
+                    <table class="min-w-full">
+
+                        <thead class="border-b bg-gray-100">
+
+                            <tr>
+
+                                <th class="py-3 px-3 text-left">
+                                    #
+                                </th>
+
+                                <th class="py-3 px-3 text-left">
+                                    Customer
+                                </th>
+
+                                <th class="py-3 px-3 text-left">
+                                    Type
+                                </th>
+
+                                <th class="py-3 px-3 text-left">
+                                    Amount
+                                </th>
+
+                                <th class="py-3 px-3 text-left">
+                                    Status
+                                </th>
+
+                                <th class="py-3 px-3 text-left">
+                                    User
+                                </th>
+
+                                <th class="py-3 px-3 text-left">
+                                    Created
+                                </th>
+
+                                <th class="py-3 px-3 text-center">
+                                    Actions
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                        @forelse($operations as $operation)
+
+                            <tr class="border-b hover:bg-gray-50">
+
+                                <td class="px-3 py-3">
+                                    {{ $operation->id }}
+                                </td>
+
+                                <td class="px-3 py-3">
+                                    {{ $operation->customer?->name ?? '-' }}
+                                </td>
+
+                                <td class="px-3 py-3">
+                                    {{ ucfirst($operation->type) }}
+                                </td>
+
+                                <td class="px-3 py-3 font-semibold">
+                                    {{ number_format($operation->amount, 2) }}
+                                </td>
+
+                                <td class="px-3 py-3">
+
+                                    @switch($operation->status)
+
+                                        @case('approved')
+
+                                            <span class="px-2 py-1 rounded bg-green-100 text-green-700">
+                                                Approved
+                                            </span>
+
+                                            @break
+
+                                        @case('rejected')
+
+                                            <span class="px-2 py-1 rounded bg-red-100 text-red-700">
+                                                Rejected
+                                            </span>
+
+                                            @break
+
+                                        @case('completed')
+
+                                            <span class="px-2 py-1 rounded bg-blue-100 text-blue-700">
+                                                Completed
+                                            </span>
+
+                                            @break
+
+                                        @case('cancelled')
+
+                                            <span class="px-2 py-1 rounded bg-gray-200 text-gray-700">
+                                                Cancelled
+                                            </span>
+
+                                            @break
+
+                                        @default
+
+                                            <span class="px-2 py-1 rounded bg-yellow-100 text-yellow-700">
+                                                Pending
+                                            </span>
+
+                                    @endswitch
+
+                                </td>
+
+                                <td class="px-3 py-3">
+                                    {{ $operation->user?->name ?? '-' }}
+                                </td>
+
+                                <td class="px-3 py-3">
+                                    {{ $operation->created_at?->format('Y-m-d H:i') }}
+                                </td>
+
+                                <td class="px-3 py-3 text-center space-x-2">
+
+                                    {{-- View --}}
+
+                                    <a
+                                        href="{{ route('operations.show', $operation) }}"
+                                        class="text-blue-600 hover:underline">
+
+                                        View
+
+                                    </a>
+
+
+                                    {{-- Approval Actions --}}
+
+                                    @if(
+                                        $operation->status === 'pending' &&
+                                        Auth::user()->role?->permissions->contains('name', 'approve_operations')
+                                    )
+
+                                        <form
+                                            method="POST"
+                                            action="{{ route('operations.approve', $operation) }}"
+                                            class="inline">
+
+                                            @csrf
+
+                                            <button
+                                                type="submit"
+                                                class="text-green-600 hover:underline">
+
+                                                Approve
+
+                                            </button>
+
+                                        </form>
+
+
+                                        <form
+                                            method="POST"
+                                            action="{{ route('operations.reject', $operation) }}"
+                                            class="inline">
+
+                                            @csrf
+
+                                            <button
+                                                type="submit"
+                                                class="text-red-600 hover:underline">
+
+                                                Reject
+
+                                            </button>
+
+                                        </form>
+
+                                    @endif
+
+                                </td>
+
+                            </tr>
+
+                        @empty
+
+                            <tr>
+
+                                <td
+                                    colspan="8"
+                                    class="text-center py-8 text-gray-500">
+
+                                    No operations found.
+
+                                </td>
+
+                            </tr>
+
+                        @endforelse
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                {{-- Pagination --}}
+
+                <div class="mt-6">
+
+                    {{ $operations->links() }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

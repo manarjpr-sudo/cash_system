@@ -17,18 +17,15 @@ class Transaction extends Model
         'description',
     ];
 
-
     public function operation(): BelongsTo
     {
         return $this->belongsTo(Operation::class);
     }
 
-
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
-
 
     public function user(): BelongsTo
     {

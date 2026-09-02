@@ -2,87 +2,80 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Models\Customer;
 use App\Models\Operation;
 use App\Models\Transaction;
-use App\Models\Customer;
-use App\Models\User;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    private function getDashboardData()
-    {
-        return [
-            'totalUsers' => User::count(),
-
-            'totalCustomers' => Customer::count(),
-
-            'totalOperations' => Operation::count(),
-
-            'pendingOperations' => Operation::where('status', 'pending')->count(),
-
-            'approvedOperations' => Operation::where('status', 'approved')->count(),
-
-            'rejectedOperations' => Operation::where('status', 'rejected')->count(),
-
-
-            'totalTransactions' => Transaction::count(),
-
-            'totalAmount' => Transaction::sum('amount'),
-
-
-            'latestTransactions' => Transaction::with([
-                'operation',
-                'customer',
-                'user'
-            ])
-            ->latest()
-            ->take(5)
-            ->get(),
-
-
-            'latestOperations' => Operation::with([
-                'customer',
-                'user'
-            ])
-            ->latest()
-            ->take(5)
-            ->get(),
-        ];
-    }
-
 
     public function index()
     {
-        return view('dashboard', $this->getDashboardData());
+        // توجيه إلى الصفحة الرئيسية (React)
+        return redirect('/');
     }
 
 
-    public function api()
+    public function api(Request $request)
     {
-        $data = $this->getDashboardData();
+        $user = $request->user();
 
+        $data = [
+            'user' => [
+                'name' => $user->name,
+                'role' => $user->role?->name,
+            ]
+        ];
 
-        return response()->json([
-            'total_users' => $data['totalUsers'],
+        if ($user->hasPermission('view_dashboard')) {
+            // 🔥 حساب الإحصائيات المالية
+            $totalReceipts = Operation::where('type', 'receipt')->where('status', 'approved')->sum('amount');
+            $totalPayments = Operation::where('type', 'payment')->where('status', 'approved')->sum('amount');
+            $totalAdvances = Operation::where('type', 'advance')->where('status', 'approved')->sum('amount');
+            $netCash = $totalReceipts - $totalPayments;
 
-            'total_customers' => $data['totalCustomers'],
+            $data['stats'] = [
+                'usersCount' => User::count(),
+                'customersCount' => Customer::count(),
+                'operationsCount' => Operation::count(),
+                'pendingOperations' => Operation::where('status', 'pending')->count(),
+                'approvedOperations' => Operation::where('status', 'approved')->count(),
+                'rejectedOperations' => Operation::where('status', 'rejected')->count(),
+                'totalAmount' => Operation::where('status', 'approved')->sum('amount'),
+                'transactionsCount' => Transaction::count(),
+                'totalReceipts' => $totalReceipts,
+                'totalPayments' => $totalPayments,
+                'totalAdvances' => $totalAdvances,
+                'netCash' => $netCash,
+            ];
 
-            'total_operations' => $data['totalOperations'],
+            // 🔥 إضافة آخر العمليات (بجميع حالاتها) للمدير
+            $data['latestOperations'] = Operation::with(['customer', 'user'])
+                ->latest()
+                ->take(5)
+                ->get();
 
-            'pending_operations' => $data['pendingOperations'],
+            $data['latestTransactions'] = Transaction::with(['customer', 'user'])
+                ->latest()
+                ->take(5)
+                ->get();
 
-            'approved_operations' => $data['approvedOperations'],
+        } else {
+            $data['myOperations'] = Operation::where('user_id', $user->id)
+                ->with('customer')
+                ->latest()
+                ->take(5)
+                ->get();
 
-            'rejected_operations' => $data['rejectedOperations'],
+            $data['myStats'] = [
+                'total' => Operation::where('user_id', $user->id)->count(),
+                'pending' => Operation::where('user_id', $user->id)->where('status', 'pending')->count(),
+                'approved' => Operation::where('user_id', $user->id)->where('status', 'approved')->count(),
+            ];
+        }
 
-            'total_transactions' => $data['totalTransactions'],
-
-            'total_amount' => $data['totalAmount'],
-
-
-            'latest_transactions' => $data['latestTransactions'],
-
-            'latest_operations' => $data['latestOperations'],
-        ]);
+        return response()->json($data);
     }
 }

@@ -6,45 +6,26 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('operations', function (Blueprint $table) {
-
             $table->id();
-
-            $table->foreignId('customer_id')
-                ->constrained()
-                ->cascadeOnDelete();
-
-            $table->string('type');
-
-            $table->decimal('amount', 12, 2);
-
-            $table->enum('status', [
-                'pending',
-                'approved',
-                'rejected',
-                'completed',
-                'cancelled'
-            ])->default('pending');
-
+            $table->foreignId('customer_id')->constrained();
+            $table->foreignId('user_id')->constrained();
+            $table->unsignedBigInteger('category_id')->nullable(); // بدون foreign
+            $table->enum('type', ['receipt', 'payment']);
+            $table->decimal('amount', 15, 2);
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->text('description')->nullable();
-
-            $table->foreignId('created_by')
-                ->constrained('users')
-                ->cascadeOnDelete();
-
+            $table->string('idempotency_key')->unique()->nullable();
             $table->timestamps();
 
+            $table->index(['status', 'type', 'created_at']);
+            $table->index('customer_id');
+            $table->index('user_id');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('operations');
