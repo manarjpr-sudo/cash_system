@@ -2,105 +2,176 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreOperationRequest;
+use App\Http\Requests\UpdateOperationRequest;
 use App\Models\Operation;
 use Illuminate\Http\Request;
 
 class OperationController extends Controller
 {
     /**
-     * عرض قائمة العمليات مع إمكانية البحث والفلترة.
+     * عرض عمليات المستخدم الحالي مع البحث والفلترة.
      */
     public function index(Request $request)
     {
-        $operations = Operation::with(['customer:id,name', 'user:id,name', 'category:id,name', 'subCategory:id,name'])
-            ->when($request->filled('status'), function ($q) use ($request) {
-                return $q->where('status', $request->status);
+        $user = $request->user();
+
+        $perPage = max(
+            1,
+            min(
+                (int) $request->input('per_page', 15),
+                100
+            )
+        );
+
+        $operations = Operation::query()
+            ->where('user_id', $user->id)
+
+            ->with([
+                'category:id,name_ar,name_en,type,parent_id',
+            ])
+
+            ->when($request->filled('type'), function ($query) use ($request) {
+                $query->whereIn(
+                    'type',
+                    ['income', 'expense']
+                )->where(
+                    'type',
+                    $request->input('type')
+                );
             })
-            ->when($request->filled('type'), function ($q) use ($request) {
-                return $q->where('type', $request->type);
+
+            ->when($request->filled('category_id'), function ($query) use ($request) {
+                $query->where(
+                    'category_id',
+                    $request->integer('category_id')
+                );
             })
-            ->when($request->filled('customer_id'), function ($q) use ($request) {
-                return $q->where('customer_id', $request->customer_id);
+
+            ->when($request->filled('date_from'), function ($query) use ($request) {
+                $query->whereDate(
+                    'operation_date',
+                    '>=',
+                    $request->input('date_from')
+                );
             })
-            ->when($request->filled('category_id'), function ($q) use ($request) {
-                return $q->where('category_id', $request->category_id);
+
+            ->when($request->filled('date_to'), function ($query) use ($request) {
+                $query->whereDate(
+                    'operation_date',
+                    '<=',
+                    $request->input('date_to')
+                );
             })
-            ->when($request->filled('search'), function ($q) use ($request) {
-                $search = $request->search;
-                return $q->where(function ($query) use ($search) {
-                    $query->where('description', 'LIKE', "%{$search}%")
-                          ->orWhereHas('customer', function ($q) use ($search) {
-                              $q->where('name', 'LIKE', "%{$search}%");
-                          });
+
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim($request->input('search'));
+
+                $query->where(function ($q) use ($search) {
+                    $q->where(
+                        'description',
+                        'LIKE',
+                        '%' . $search . '%'
+                    )
+                    ->orWhereHas('category', function ($categoryQuery) use ($search) {
+                        $categoryQuery
+                            ->where('name_ar', 'LIKE', '%' . $search . '%')
+                            ->orWhere('name_en', 'LIKE', '%' . $search . '%');
+                    });
                 });
             })
-            ->latest()
-            ->paginate($request->per_page ?? 15);
+
+            ->orderByDesc('operation_date')
+            ->orderByDesc('id')
+
+            ->paginate($perPage);
 
         return response()->json($operations);
     }
 
     /**
-     * إنشاء عملية جديدة.
+     * إنشاء عملية قبض أو صرف.
      */
-    public function store(Request $request)
+    public function store(StoreOperationRequest $request)
     {
-        $validated = $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'type'        => 'required|in:receipt,payment',
-            'amount'      => 'required|numeric|min:0.01',
-            'description' => 'nullable|string',
-            'category_id' => 'nullable|exists:categories,id',
-        ]);
-
         $operation = Operation::create([
-            ...$validated,
-            'user_id' => auth()->id(),
-            'status'  => 'pending',
+            ...$request->validated(),
+            'user_id' => $request->user()->id,
         ]);
 
-        return response()->json(['message' => 'Created', 'operation' => $operation], 201);
+        $operation->load(
+            'category:id,name_ar,name_en,type,parent_id'
+        );
+
+        return response()->json([
+            'message' => 'Operation created successfully',
+            'operation' => $operation,
+        ], 201);
     }
 
     /**
-     * عرض عملية محددة.
+     * عرض عملية واحدة للمستخدم الحالي.
      */
-    public function show(Operation $operation)
-    {
-        return response()->json($operation->load(['customer', 'user', 'category']));
+    public function show(
+        Request $request,
+        Operation $operation
+    ) {
+        $this->ensureOwnership($request, $operation);
+
+        $operation->load(
+            'category:id,name_ar,name_en,type,parent_id'
+        );
+
+        return response()->json($operation);
     }
 
     /**
-     * تحديث عملية موجودة (فقط المعلقة).
+     * تعديل عملية للمستخدم الحالي.
      */
-    public function update(Request $request, Operation $operation)
-    {
-        if ($operation->status !== 'pending') {
-            abort(403, 'Only pending operations can be modified');
-        }
+    public function update(
+        UpdateOperationRequest $request,
+        Operation $operation
+    ) {
+        $this->ensureOwnership($request, $operation);
 
-        $validated = $request->validate([
-            'description' => 'nullable|string',
-            'amount'      => 'sometimes|numeric|min:0.01',
-            'category_id' => 'nullable|exists:categories,id',
+        $operation->update($request->validated());
+
+        $operation->load(
+            'category:id,name_ar,name_en,type,parent_id'
+        );
+
+        return response()->json([
+            'message' => 'Operation updated successfully',
+            'operation' => $operation,
         ]);
-
-        $operation->update($validated);
-
-        return response()->json(['message' => 'Updated', 'operation' => $operation]);
     }
 
     /**
-     * حذف عملية (فقط المعلقة).
+     * حذف عملية للمستخدم الحالي.
      */
-    public function destroy(Operation $operation)
-    {
-        if ($operation->status !== 'pending') {
-            abort(403, 'Only pending operations can be modified');
-        }
+    public function destroy(
+        Request $request,
+        Operation $operation
+    ) {
+        $this->ensureOwnership($request, $operation);
 
         $operation->delete();
 
-        return response()->json(['message' => 'Deleted']);
+        return response()->json([
+            'message' => 'Operation deleted successfully',
+        ]);
+    }
+
+    /**
+     * التأكد من أن العملية تخص المستخدم الحالي.
+     */
+    private function ensureOwnership(
+        Request $request,
+        Operation $operation
+    ): void {
+        abort_unless(
+            $operation->user_id === $request->user()->id,
+            404
+        );
     }
 }

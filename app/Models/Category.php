@@ -8,7 +8,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
-    protected $fillable = ['name', 'type', 'parent_id'];
+    protected $fillable = [
+        'name_ar',
+        'name_en',
+        'type',
+        'parent_id',
+    ];
+
+    protected $casts = [
+        'parent_id' => 'integer',
+    ];
 
     public function parent(): BelongsTo
     {
