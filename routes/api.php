@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OperationController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingController;
@@ -61,6 +62,9 @@ Route::middleware('auth:sanctum')
 
         Route::get('/dashboard', [DashboardController::class, 'api'])
             ->name('dashboard');
+
+        Route::get('/reports', [ReportController::class, 'index'])
+            ->name('reports.index');    
 
 
         /*
