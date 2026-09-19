@@ -91,6 +91,9 @@ Route::middleware('auth:sanctum')
         Route::put('/categories/{category}', [CategoryController::class, 'update'])
             ->name('categories.update');
 
+        Route::patch('/categories/{category}/status', [CategoryController::class, 'toggleStatus'])
+            ->name('categories.toggle-status');
+
         Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])
             ->name('categories.destroy');
 

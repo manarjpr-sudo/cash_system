@@ -13,20 +13,28 @@ class Category extends Model
         'name_en',
         'type',
         'parent_id',
+        'is_active',
     ];
 
     protected $casts = [
         'parent_id' => 'integer',
+        'is_active' => 'boolean',
     ];
 
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(Category::class, 'parent_id');
+        return $this->belongsTo(
+            Category::class,
+            'parent_id'
+        );
     }
 
     public function children(): HasMany
     {
-        return $this->hasMany(Category::class, 'parent_id');
+        return $this->hasMany(
+            Category::class,
+            'parent_id'
+        );
     }
 
     public function operations(): HasMany

@@ -16,13 +16,17 @@ class OperationController extends Controller
     {
         $user = $request->user();
 
-        $perPage = max(
-            1,
-            min(
-                (int) $request->input('per_page', 15),
-                100
-            )
-        );
+        $validated = $request->validate([
+            'type' => ['nullable', 'in:income,expense'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'parent_category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $perPage = $validated['per_page'] ?? 15;
 
         $operations = Operation::query()
             ->where('user_id', $user->id)
@@ -31,59 +35,88 @@ class OperationController extends Controller
                 'category:id,name_ar,name_en,type,parent_id',
             ])
 
-            ->when($request->filled('type'), function ($query) use ($request) {
-                $query->whereIn(
-                    'type',
-                    ['income', 'expense']
-                )->where(
-                    'type',
-                    $request->input('type')
-                );
-            })
+            // نوع العملية
+            ->when(
+                !empty($validated['type']),
+                function ($query) use ($validated) {
+                    $query->where('type', $validated['type']);
+                }
+            )
 
-            ->when($request->filled('category_id'), function ($query) use ($request) {
-                $query->where(
-                    'category_id',
-                    $request->integer('category_id')
-                );
-            })
+            // تصنيف فرعي محدد
+            ->when(
+                !empty($validated['category_id']),
+                function ($query) use ($validated) {
+                    $query->where(
+                        'category_id',
+                        $validated['category_id']
+                    );
+                }
+            )
 
-            ->when($request->filled('date_from'), function ($query) use ($request) {
-                $query->whereDate(
-                    'operation_date',
-                    '>=',
-                    $request->input('date_from')
-                );
-            })
+            // تصنيف رئيسي:
+            // يعرض العمليات المسجلة على الرئيسي نفسه
+            // + جميع التصنيفات الفرعية التابعة له
+            ->when(
+                !empty($validated['parent_category_id']),
+                function ($query) use ($validated) {
+                    $parentId = $validated['parent_category_id'];
 
-            ->when($request->filled('date_to'), function ($query) use ($request) {
-                $query->whereDate(
-                    'operation_date',
-                    '<=',
-                    $request->input('date_to')
-                );
-            })
-
-            ->when($request->filled('search'), function ($query) use ($request) {
-                $search = trim($request->input('search'));
-
-                $query->where(function ($q) use ($search) {
-                    $q->where(
-                        'description',
-                        'LIKE',
-                        '%' . $search . '%'
-                    )
-                    ->orWhereHas('category', function ($categoryQuery) use ($search) {
+                    $query->whereHas('category', function ($categoryQuery) use ($parentId) {
                         $categoryQuery
-                            ->where('name_ar', 'LIKE', '%' . $search . '%')
-                            ->orWhere('name_en', 'LIKE', '%' . $search . '%');
+                            ->where('id', $parentId)
+                            ->orWhere('parent_id', $parentId);
                     });
-                });
-            })
+                }
+            )
+
+            // من تاريخ
+            ->when(
+                !empty($validated['date_from']),
+                function ($query) use ($validated) {
+                    $query->whereDate(
+                        'operation_date',
+                        '>=',
+                        $validated['date_from']
+                    );
+                }
+            )
+
+            // إلى تاريخ
+            ->when(
+                !empty($validated['date_to']),
+                function ($query) use ($validated) {
+                    $query->whereDate(
+                        'operation_date',
+                        '<=',
+                        $validated['date_to']
+                    );
+                }
+            )
+
+            // البحث النصي
+            ->when(
+                !empty($validated['search']),
+                function ($query) use ($validated) {
+                    $search = trim($validated['search']);
+
+                    $query->where(function ($q) use ($search) {
+                        $q->where(
+                            'description',
+                            'LIKE',
+                            '%' . $search . '%'
+                        )
+                        ->orWhereHas('category', function ($categoryQuery) use ($search) {
+                            $categoryQuery
+                                ->where('name_ar', 'LIKE', '%' . $search . '%')
+                                ->orWhere('name_en', 'LIKE', '%' . $search . '%');
+                        });
+                    });
+                }
+            )
 
             ->orderByDesc('operation_date')
             ->orderByDesc('id')
-
             ->paginate($perPage);
 
         return response()->json($operations);
